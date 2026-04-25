@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Codebase Explainer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      color: #e8e8f0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* LANDING SCREEN */
+    #landing {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    #landing.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .landing-badge {
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #4a90d9;
+      background: rgba(74,144,217,0.1);
+      border: 0.5px solid rgba(74,144,217,0.3);
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+
+    .landing-title {
+      font-size: 42px;
+      font-weight: 600;
+      letter-spacing: -1px;
+      color: #f0f0f8;
+      text-align: center;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .landing-title span {
+      color: #4a90d9;
+    }
+
+    .landing-sub {
+      font-size: 16px;
+      color: #6b6b80;
+      margin-bottom: 48px;
+      text-align: center;
+    }
+
+    .landing-input-wrap {
+      display: flex;
+      width: 560px;
+      gap: 0;
+      border: 0.5px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      transition: border-color .2s;
+    }
+
+    .landing-input-wrap:focus-within {
+      border-color: #4a90d9;
+      box-shadow: 0 0 0 3px rgba(74,144,217,0.1);
+    }
+
+    .landing-prefix {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #4a90d9;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: rgba(74,144,217,0.08);
+      border-right: 0.5px solid rgba(255,255,255,0.08);
+      white-space: nowrap;
+    }
+
+    #landingUrl {
+      flex: 1;
+      padding: 14px 16px;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      color: #e8e8f0;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    #landingUrl::placeholder { color: #3a3a50; }
+
+    .landing-btn {
+      padding: 14px 24px;
+      background: #4a90d9;
+      border: none;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap;
+    }
+
+    .landing-btn:hover { background: #3a7fc8; }
+    .landing-btn:disabled { background: #2a3a4a; color: #4a5a6a; cursor: not-allowed; }
+
+    .landing-examples {
+      margin-top: 24px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .example-chip {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 0.5px solid rgba(255,255,255,0.1);
+      color: #6b6b80;
+      cursor: pointer;
+      transition: all .15s;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .example-chip:hover { border-color: #4a90d9; color: #4a90d9; }
+
+    /* APP SCREEN */
+    #app {
+      display: none;
+      height: 100vh;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    #app.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 0;
+      overflow: hidden;
+      background: #0f0f18;
+      border-right: 0.5px solid rgba(255,255,255,0.08);
+      display: flex;
+      flex-direction: column;
+      transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+      flex-shrink: 0;
+    }
+
+    .sidebar.open { width: 280px; }
+
+    .sidebar-inner {
+      width: 280px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #4a90d9, #2a6cb8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg { width: 16px; height: 16px; fill: white; }
+    .logo-name { font-size: 14px; font-weight: 600; color: #f0f0f8; }
+    .logo-sub { font-size: 11px; color: #4a4a60; margin-top: 1px; }
+
+    .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: #3a3a50;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .repo-info {
+      background: rgba(74,144,217,0.08);
+      border: 0.5px solid rgba(74,144,217,0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .repo-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #4a90d9;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      margin-bottom: 4px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #3B9E5A;
+    }
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #3B9E5A; }
+    .dot.loading { background: #d9a84a; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .file-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .file-list::-webkit-scrollbar { width: 3px; }
+    .file-list::-webkit-scrollbar-track { background: transparent; }
+    .file-list::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      transition: background .1s;
+    }
+
+    .file-item:hover { background: rgba(255,255,255,0.04); }
+
+    .file-dot { width: 5px; height: 5px; border-radius: 50%; background: #4a90d9; flex-shrink: 0; }
+    .file-dot.md { background: #6b6b80; }
+
+    .file-name {
+      font-size: 11px;
+      color: #5a5a70;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* MAIN */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0a0a0f;
+      min-width: 0;
+    }
+
+    .topbar {
+      padding: 16px 24px;
+      border-bottom: 0.5px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0d0d16;
+    }
+
+    .topbar-title { font-size: 14px; font-weight: 500; color: #e8e8f0; }
+    .topbar-sub { font-size: 12px; color: #3a3a50; margin-top: 2px; }
+
+    /* CHAT */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chat-area::-webkit-scrollbar { width: 3px; }
+    .chat-area::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+
+    .msg-system {
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 0.5px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #4a4a60;
+      text-align: center;
+    }
+
+    .msg-user {
+      align-self: flex-end;
+      background: #4a90d9;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 14px 14px 4px 14px;
+      font-size: 14px;
+      max-width: 70%;
+      line-height: 1.5;
+    }
+
+    .msg-bot {
+      align-self: flex-start;
+      max-width: 85%;
+    }
+
+    .msg-bot-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #3a3a50;
+      margin-bottom: 6px;
+    }
+
+    .ai-dot {
+      width: 16px;
+      height: 16px;
+      background: #4a90d9;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ai-dot svg { width: 9px; height: 9px; fill: white; }
+
+    .msg-bot-bubble {
+      background: #0f0f18;
+      border: 0.5px solid rgba(255,255,255,0.08);
+      padding: 12px 16px;
+      border-radius: 4px 14px 14px 14px;
+      font-size: 14px;
+      color: #c8c8d8;
+      line-height: 1.7;
+    }
+
+    .source-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(74,144,217,0.1);
+      color: #4a90d9;
+      border: 0.5px solid rgba(74,144,217,0.2);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .thinking {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+      background: #0f0f18;
+      border: 0.5px solid rgba(255,255,255,0.08);
+      border-radius: 4px 14px 14px 14px;
+      width: fit-content;
+    }
+
+    .thinking span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4a90d9;
+      animation: bounce 1.2s infinite;
+    }
+
+    .thinking span:nth-child(2) { animation-delay: .2s; }
+    .thinking span:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+    /* INPUT BAR */
+    .input-bar {
+      padding: 16px 24px;
+      border-top: 0.5px solid rgba(255,255,255,0.06);
+      display: flex;
+      gap: 10px;
+      background: #0d0d16;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 11px 16px;
+      background: rgba(255,255,255,0.05);
+      border: 0.5px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      font-size: 14px;
+      color: #e8e8f0;
+      outline: none;
+      transition: border-color .2s;
+      font-family: inherit;
+    }
+
+    .chat-input:focus { border-color: #4a90d9; }
+    .chat-input::placeholder { color: #3a3a50; }
+    .chat-input:disabled { opacity: .4; }
+
+    .send-btn {
+      padding: 11px 20px;
+      background: #4a90d9;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+
+    .send-btn:hover { background: #3a7fc8; }
+    .send-btn:active { transform: scale(0.97); }
+    .send-btn:disabled { background: #1a2a3a; color: #3a4a5a; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <!-- LANDING -->
+  <div id="landing">
+    <div class="landing-badge">AI-powered · RAG · Codebase Q&A</div>
+    <h1 class="landing-title">Understand any <span>GitHub repo</span><br>instantly</h1>
+    <p class="landing-sub">Paste a repo URL and ask anything about the code</p>
+
+    <div class="landing-input-wrap">
+      <span class="landing-prefix">github.com/</span>
+      <input id="landingUrl" type="text" placeholder="pallets/flask" />
+      <button class="landing-btn" id="landingBtn" onclick="startIndexing()">Analyse repo</button>
+    </div>
+
+    <div class="landing-examples">
+      <span class="example-chip" onclick="fillExample('https://github.com/pallets/flask')">pallets/flask</span>
+      <span class="example-chip" onclick="fillExample('https://github.com/fastapi/fastapi')">fastapi/fastapi</span>
+      <span class="example-chip" onclick="fillExample('https://github.com/django/django')">django/django</span>
+      <span class="example-chip" onclick="fillExample('https://github.com/requests/requests')">requests/requests</span>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 16 16"><path d="M2 2h5v5H2zm7 0h5v5H9zM2 9h5v5H2zm7 0h5v5H9z"/></svg>
+          </div>
+          <div>
+            <div class="logo-name">Codebase Explainer</div>
+            <div class="logo-sub">AI-powered repo Q&A</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label">Repository</div>
+          <div class="repo-info">
+            <div class="repo-name" id="repoName">—</div>
+            <div class="status-pill">
+              <span class="dot" id="statusDot"></span>
+              <span id="statusText">Indexing...</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <div class="section-label">Indexed files</div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Chat with codebase</div>
+          <div class="topbar-sub" id="topbarSub">Indexing repository...</div>
+        </div>
+        <div class="status-pill">
+          <span class="dot" id="topDot" style="background:#d9a84a"></span>
+          <span id="topStatus">Indexing</span>
+        </div>
+      </div>
+
+      <div class="chat-area" id="chatArea">
+        <div class="msg-system" id="initMsg">Indexing repository, please wait...</div>
+      </div>
+
+      <div class="input-bar">
+        <input class="chat-input" id="questionInput" placeholder="Ask a question about the codebase..." disabled onkeydown="if(event.key==='Enter')askQuestion()" />
+        <button class="send-btn" id="sendBtn" onclick="askQuestion()" disabled>Send</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  function fillExample(url) {
+    const input = document.getElementById('landingUrl');
+    const parts = url.split('github.com/');
+    input.value = url;
+    input.focus();
+  }
+
+  async function startIndexing() {
+    let url = document.getElementById('landingUrl').value.trim();
+    if (!url) return;
+    if (!url.startsWith('http')) url = 'https://github.com/' + url;
+
+    document.getElementById('landingBtn').disabled = true;
+    document.getElementById('landingBtn').textContent = 'Indexing...';
+
+    // switch screens
+    document.getElementById('landing').classList.add('hide');
+    setTimeout(() => {
+      document.getElementById('landing').style.display = 'none';
+      const app = document.getElementById('app');
+      app.style.display = 'flex';
+      setTimeout(() => {
+        app.classList.add('show');
+        document.getElementById('sidebar').classList.add('open');
+      }, 50);
+    }, 400);
+
+    // set repo name
+    const parts = url.split('/');
+    const repoName = parts.slice(-2).join('/');
+    document.getElementById('repoName').textContent = repoName;
+    document.getElementById('statusDot').classList.add('loading');
+
+    // call backend
+    const res = await fetch('/index_repo', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({repo_url: url})
+    });
+    const data = await res.json();
+
+    // update status
+    document.getElementById('statusDot').classList.remove('loading');
+    document.getElementById('statusText').textContent = `${data.files} files indexed`;
+    document.getElementById('topDot').style.background = '#3B9E5A';
+    document.getElementById('topStatus').textContent = 'Ready';
+    document.getElementById('topbarSub').textContent = `${repoName} · ${data.files} files · llama-3.3-70b`;
+    document.getElementById('initMsg').textContent = `Repository indexed successfully. Ask anything about the code.`;
+
+    // populate file list
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    (data.file_paths || []).forEach(path => {
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      const isMd = path.endsWith('.md') || path.endsWith('.txt');
+      div.innerHTML = `<div class="file-dot${isMd?' md':''}"></div><span class="file-name">${path}</span>`;
+      fileList.appendChild(div);
+    });
+
+    // enable chat
+    document.getElementById('questionInput').disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('questionInput').focus();
+  }
+
+  async function askQuestion() {
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    if (!question) return;
+    input.value = '';
+
+    addUserMsg(question);
+    const thinkId = addThinking();
+
+    const res = await fetch('/ask', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question})
+    });
+    const data = await res.json();
+
+    removeThinking(thinkId);
+    addBotMsg(data.answer, data.sources || []);
+  }
+
+  function addUserMsg(text) {
+    const area = document.getElementById('chatArea');
+    const div = document.createElement('div');
+    div.className = 'msg-user';
+    div.textContent = text;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function addThinking() {
+    const area = document.getElementById('chatArea');
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-bot';
+    const id = 'think_' + Date.now();
+    wrap.id = id;
+    wrap.innerHTML = `
+      <div class="msg-bot-label">
+        <div class="ai-dot"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5"/></svg></div>
+        AI is thinking
+      </div>
+      <div class="thinking"><span></span><span></span><span></span></div>`;
+    area.appendChild(wrap);
+    area.scrollTop = area.scrollHeight;
+    return id;
+  }
+
+  function removeThinking(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function addBotMsg(text, sources) {
+    const area = document.getElementById('chatArea');
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-bot';
+    const chips = sources.map(s => `<span class="chip">${s}</span>`).join('');
+    wrap.innerHTML = `
+      <div class="msg-bot-label">
+        <div class="ai-dot"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5"/></svg></div>
+        AI answer
+      </div>
+      <div class="msg-bot-bubble">${text}${chips ? '<div class="source-chips">'+chips+'</div>' : ''}</div>`;
+    area.appendChild(wrap);
+    area.scrollTop = area.scrollHeight;
+  }
+</script>
+</body>
+</html>
